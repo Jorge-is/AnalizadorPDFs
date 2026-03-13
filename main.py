@@ -18,6 +18,11 @@ app = Flask(__name__)
 # Cargar la configuración desde el archivo Config
 app.config.from_object(Config)
 
+# Inicializamos Celery enlazado a esta app
+from make_celery import init_celery
+celery_app = init_celery(app)
+import tasks
+
 # Inicializar Base de datos
 db.init_app(app)
 
