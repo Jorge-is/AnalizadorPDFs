@@ -3,23 +3,31 @@ from flask import Blueprint, request, jsonify, url_for, send_from_directory, cur
 from openpyxl import Workbook                      # Para crear archivos Excel
 from openpyxl.styles import PatternFill, Border, Side, Font, Alignment  # Estilos para Excel
 import os
-from controllers import shared_data as datos_compartidos # Importa los datos compartidos de la aplicación
+from models import db, Article, Collection
+from flask_login import login_required, current_user
 
 # Crear un blueprint específico para funcionalidades de exportación
 export_bp = Blueprint('export', __name__)
 
 # Ruta que genera un archivo Excel con los datos seleccionados por el usuario
 @export_bp.route("/exportar_excel", methods=["POST"])
+@login_required
 def exportar():
-    # Obtiene los datos extraídos que se compartieron desde otros módulos
-    datos_extraidos = datos_compartidos.get_datos_extraidos()
-    print(datos_extraidos)
+    # Obtiene los datos extraídos desde la Base de Datos
+    col = Collection.query.filter_by(user_id=current_user.id, name="Default").first()
+    if not col:
+        return jsonify(error="No hay datos para exportar.")
+
+    articles = Article.query.filter_by(collection_id=col.id, status='completed').all()
+    datos_extraidos = [a.get_metadata() for a in articles]
+
     # Validar que haya datos disponibles para exportar
     if not datos_extraidos:
         return jsonify(error="No hay datos para exportar.")
 
     # Obtener la lista de columnas seleccionadas por el usuario en el formulario
     columnas_seleccionadas = request.form.getlist('columnas')
+
 
     # Crear un nuevo libro de trabajo de Excel
     libro_trabajo = Workbook()

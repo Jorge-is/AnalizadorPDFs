@@ -21,7 +21,13 @@
     </head>
     <body>
         <!-- Encabezado de la página con logo y título -->
-        <header>
+        <header style="position: relative;">
+            <div style="position: absolute; top: 10px; right: 20px;">
+                {% if current_user.is_authenticated %}
+                    <span>Hola, {{ current_user.username }}</span> | 
+                    <a href="{{ url_for('auth.logout') }}" style="color: #d9534f; text-decoration: none; font-weight: bold;">Cerrar Sesión</a>
+                {% endif %}
+            </div>
             <img
                 src="{{ url_for('static', filename='assets/logo.png') }}"
                 alt="Logo del sitio"
