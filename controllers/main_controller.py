@@ -79,29 +79,23 @@ def extraer():
             return render_template("index.html", error="Solo archivos válidos en formato PDF.")
 
         col = get_or_create_default_collection()
+        import tasks
 
         for archivo in archivos:
             if archivo.filename:
                 try:
                     ruta_archivo, secure_name = guardar_pdf_seguro(archivo)
-                    new_art = Article(collection_id=col.id, filename=secure_name, filepath=ruta_archivo, status='processing')
+                    new_art = Article(collection_id=col.id, filename=secure_name, filepath=ruta_archivo, status='pending')
                     db.session.add(new_art)
                     db.session.commit()
                     
-                    datos = extraer_datos_pdf(ruta_archivo)
-                    
-                    if datos:
-                        new_art.set_metadata(datos)
-                        new_art.status = 'completed'
-                    else:
-                        new_art.status = 'failed'
-                    db.session.commit()
+                    # Llamada a IA delegada al trabajador de fondo (Celery)
+                    tasks.procesar_pdf_background.delay(new_art.id, ruta_archivo)
                 except Exception as e:
-                    print(f"Error procesando {archivo.filename}: {e}")
+                    print(f"Error procesando/encolando {archivo.filename}: {e}")
 
         return redirect(url_for("main.inicio"))
     return redirect(url_for("main.inicio", error="Por favor, adjunta archivos."))
-
 
 @main_bp.route("/subir_archivo", methods=["POST"])
 @login_required
@@ -181,29 +175,21 @@ def extraer_de_lista():
     if not pendientes:
         return jsonify({'error': 'No hay archivos en la lista para procesar'}), 400
 
+    import tasks
+
     procesados = 0
     for art in pendientes:
         try:
-            art.status = 'processing'
-            db.session.commit()
-            
-            datos = extraer_datos_pdf(art.filepath)
-            
-            if datos:
-                art.set_metadata(datos)
-                art.status = 'completed'
-                procesados += 1
-            else:
-                art.status = 'failed'
-            db.session.commit()
+            # Enviar a la cola de celery en segundo plano
+            tasks.procesar_pdf_background.delay(art.id, art.filepath)
+            procesados += 1
         except Exception as e:
-            print(f"Error procesando {art.filename}: {e}")
-            art.status = 'failed'
-            db.session.commit()
+            print(f"Error encolando {art.filename}: {e}")
 
     return jsonify({
         'success': True,
         'data_count': procesados,
+        'message': 'Tareas enviadas a proceso en segundo plano.',
         'redirect_url': url_for('main.inicio')
     })
 
