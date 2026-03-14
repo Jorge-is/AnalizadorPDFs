@@ -5,3 +5,4 @@ instance/
 *.db
 .DS_Store
 *.pyc
+dev/
