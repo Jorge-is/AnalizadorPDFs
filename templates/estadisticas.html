@@ -1,64 +1,77 @@
 <!doctype html>
 <html lang="es">
-    <head>
-        <meta charset="UTF-8" />
-        <title>Analizador Semántico RSL</title>
-        <link
-            rel="stylesheet"
-            href="{{ url_for('static', filename='style.css') }}"
-        />
-        <link
-            rel="icon"
-            href="{{ url_for('static', filename='assets/logo.png') }}"
-            type="image/png"
-        />
-    </head>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Estadísticas - RSL Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='assets/logo.png') }}" type="image/png" />
+</head>
+<body>
+<div class="app-shell">
 
-    <body>
-        <a href="/" class="export-button home"> Volver </a>
-        <header>
-            <img
-                src="{{ url_for('static', filename='assets/logo.png') }}"
-                alt="Logo del sitio"
-            />
-            <h1>Analizador Semántico para RSL</h1>
-            <p>
-                Aqui podras visualizar los gráficos estadísticos de los datos
-                obtenidos de la búsqueda de artículos científicos realizada.
-            </p>
-        </header>
-        <div class="chart-container">
-            <div class="first-chart">
-                <h3>Gráfico de Países</h3>
-                <div class="chart-actions">
-                    <button onclick="exportChart('geoChart', 'mapa-paises')">
-                        Exportar Mapa
-                    </button>
+    <!-- HEADER -->
+    <header class="site-header">
+        <div class="site-header__inner">
+            <a href="{{ url_for('main.inicio') }}" class="site-header__brand">
+                <img src="{{ url_for('static', filename='assets/logo.png') }}"
+                     alt="Logo RSL" class="site-header__logo" />
+                <span class="site-header__title">RSL <span>Analyzer</span></span>
+            </a>
+            <nav class="site-header__nav">
+                <a href="{{ url_for('main.inicio') }}" class="nav-link">Sesión Actual</a>
+                <a href="{{ url_for('main.historial') }}" class="nav-link">Historial</a>
+                <a href="{{ url_for('main.estadisticas') }}" class="nav-link nav-link--active">Estadísticas</a>
+            </nav>
+            <div class="site-header__user">
+                {% if current_user.is_authenticated %}
+                    <span class="user-badge">
+                        <span class="user-badge__dot"></span>
+                        {{ current_user.username }}
+                    </span>
+                    <a href="{{ url_for('auth.logout') }}" class="btn-logout">Salir</a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN -->
+    <div class="stats-page">
+        <div class="page-header">
+            <h1 class="page-header__title">Estadísticas <span>Visuales</span></h1>
+            <p class="page-header__desc">Visualiza los gráficos estadísticos derivados de tus artículos procesados.</p>
+        </div>
+
+        <div class="stats-grid">
+            <!-- Chart: Países -->
+            <div class="chart-card">
+                <div class="chart-card__header">
+                    <span class="chart-card__title">Distribución por País</span>
+                    <button class="btn btn--ghost" onclick="exportChart('geoChart', 'mapa-paises')"
+                            style="padding: 6px 12px; font-size: 0.75rem;">Exportar</button>
                 </div>
-                <canvas id="geoChart"></canvas>
+                <div class="chart-card__body">
+                    <canvas id="geoChart"></canvas>
+                </div>
             </div>
 
-            <div class="first-chart">
-                <h3>Gráfico por Año</h3>
-                <div class="chart-actions">
-                    <button onclick="exportChart('yearChart', 'grafico-anios')">
-                        Exportar Gráfico
-                    </button>
+            <!-- Chart: Años -->
+            <div class="chart-card">
+                <div class="chart-card__header">
+                    <span class="chart-card__title">Distribución por Año</span>
+                    <button class="btn btn--ghost" onclick="exportChart('yearChart', 'grafico-anios')"
+                            style="padding: 6px 12px; font-size: 0.75rem;">Exportar</button>
                 </div>
-                <div id="chart_anio" class="chart-container">
+                <div class="chart-card__body">
                     <canvas id="yearChart"></canvas>
                 </div>
             </div>
         </div>
+    </div>
 
-        <script
-            type="text/javascript"
-            src="https://cdn.jsdelivr.net/npm/chart.js"
-        ></script>
-        <script
-            type="text/javascript"
-            src="https://unpkg.com/chartjs-chart-geo@3.5.2/build/index.umd.min.js"
-        ></script>
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script type="text/javascript" src="https://unpkg.com/chartjs-chart-geo@3.5.2/build/index.umd.min.js"></script>
+        
         <script>
             // Funcion para descargar una imagen del gráfico completo
             function exportChart(chartId, fileName) {
@@ -274,5 +287,18 @@
                     configureChartResponsive(yearChart);
                 });
         </script>
-    </body>
+
+    <!-- FOOTER -->
+    <footer class="site-footer">
+        <div class="site-footer__inner">
+            <p class="site-footer__copy">&copy; 2025 <span>RSL Analyzer</span> - UTP</p>
+            <div class="site-footer__links">
+                <a href="{{ url_for('main.inicio') }}">Sesión</a>
+                <a href="{{ url_for('main.historial') }}">Historial</a>
+            </div>
+        </div>
+    </footer>
+
+</div><!-- /.app-shell -->
+</body>
 </html>
