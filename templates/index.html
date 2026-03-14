@@ -37,6 +37,19 @@
                 Analiza artículos científicos en PDF para extraer datos útiles
                 para estudiantes e investigadores.
             </p>
+            <nav style="margin-top: 15px; display: flex; gap: 20px;">
+                <a href="{{ url_for('main.inicio') }}" class="btn {% if vista_actual == 'inicio' %}btn-active{% endif %}">Sesión Actual</a>
+                <a href="{{ url_for('main.historial') }}" class="btn {% if vista_actual == 'historial' %}btn-active{% endif %}">Historial Completo</a>
+            </nav>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div style="margin-top: 20px; text-align: center; width: 100%;">
+                    {% for category, message in messages %}
+                        <div class="status-message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
         </header>
 
         <!-- Contenedor principal de la aplicación -->
@@ -70,31 +83,36 @@
 
             <!-- Sección derecha: Búsqueda y visualización de resultados -->
             <div>
-                <!-- Separador visual entre carga y búsqueda -->
-                <div class="demo">
-                    <div class="line"></div>
-                    <h3>O</h3>
-                    <div class="line"></div>
-                </div>
+                {% if vista_actual == 'historial' %}
+                    <h2 style="text-align: center; margin-bottom: 20px;">Historial de Todos los Artículos Procesados</h2>
+                {% else %}
+                    <h2 style="text-align: center; margin-bottom: 20px;">Análisis de la Sesión Actual</h2>
+                    
+                    <!-- Formulario para buscar artículos por tema en la DB completa (historial) -->
+                    <form method="POST" action="/buscar" class="form-section" style="margin-top: 10px;">
+                        <div>
+                            <input
+                                type="text"
+                                name="buscar_tema"
+                                placeholder="Buscar cualquier término en tu historial..."
+                            />
+                            <button type="submit" class="btn">Buscar</button>
+                        </div>
 
-                <!-- Formulario para buscar artículos por tema en los archivos ya procesados -->
-                <form method="POST" action="/buscar" class="form-section">
-                    <div>
-                        <input
-                            type="text"
-                            name="buscar_tema"
-                            placeholder="Buscar por tema"
-                        />
-                        <button type="submit" class="btn">Buscar</button>
+                        <!-- Muestra un mensaje de error si ocurre alguno durante la búsqueda -->
+                        {% if error %}
+                        <p class="error-message" style="margin-top: 20px">
+                            {{ error }}
+                        </p>
+                        {% endif %}
+                    </form>
+                    
+                    <div class="demo" style="margin-top:20px;">
+                        <div class="line"></div>
+                        <h3>Resultados</h3>
+                        <div class="line"></div>
                     </div>
-
-                    <!-- Muestra un mensaje de error si ocurre alguno durante la búsqueda -->
-                    {% if error %}
-                    <p class="error-message" style="margin-top: 20px">
-                        {{ error }}
-                    </p>
-                    {% endif %}
-                </form>
+                {% endif %}
 
                 <!-- Contenedor para los datos extraídos -->
                 <div class="data-container">

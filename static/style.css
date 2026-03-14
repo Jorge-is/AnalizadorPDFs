@@ -104,6 +104,11 @@ a:hover {
     background-color: #00509e;
 }
 
+.btn-active {
+    background-color: #00509e !important;
+    border: 1px solid white;
+}
+
 .export-container {
     text-align: center;
     display: flex;
@@ -127,6 +132,7 @@ table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 10px;
+    table-layout: fixed; /* Agregado para respetar los anchos de celda */
 }
 
 th,
@@ -134,6 +140,10 @@ td {
     padding: 12px;
     text-align: left;
     border: 1px solid #ddd;
+    word-wrap: break-word; /* Permite que el texto largo salte de línea */
+    word-break: break-word; /* Previene overflow rompiendo el texto si es una palabra larga sin espacios */
+    white-space: normal; /* Asegura que el texto pueda saltar línea en vez de esconderse */
+    vertical-align: top;
 }
 
 th {
