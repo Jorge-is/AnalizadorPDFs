@@ -7,7 +7,6 @@ class GestorArchivos {
     this.botonSubir = document.getElementById("upload-btn");
     this.entradaArchivo = document.getElementById("file-input");
     this.contenedorArchivos = document.getElementById("files-container");
-    this.formularioExtraer = document.getElementById("extract-form");
     this.botonExtraer = document.getElementById("extract-btn");
     this.estadoSubida = document.getElementById("upload-status");
 
@@ -18,11 +17,16 @@ class GestorArchivos {
 
   // Método para configurar todos los eventos de clic y cambio.
   inicializarEventListeners() {
-    // Evento para el botón de subir: simula un clic en el input de archivo oculto.
+    // Evento para la zona de subida: simula un clic en el input de archivo oculto.
     if (this.botonSubir) {
       this.botonSubir.addEventListener("click", () => {
-        if (this.entradaArchivo) {
-          this.entradaArchivo.click();
+        if (this.entradaArchivo) this.entradaArchivo.click();
+      });
+      // Soporte de teclado para accesibilidad (Enter / Space)
+      this.botonSubir.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          if (this.entradaArchivo) this.entradaArchivo.click();
         }
       });
     }
@@ -36,10 +40,9 @@ class GestorArchivos {
       });
     }
 
-    // Evento para el formulario de extracción: previene el envío normal y llama a la función de extracción.
-    if (this.formularioExtraer) {
-      this.formularioExtraer.addEventListener("submit", (e) => {
-        e.preventDefault(); // Evita que la página se recargue.
+    // Evento para el botón de extracción.
+    if (this.botonExtraer) {
+      this.botonExtraer.addEventListener("click", () => {
         this.extraerDatos();
       });
     }
@@ -123,10 +126,14 @@ class GestorArchivos {
   mostrarArchivos(archivos) {
     if (!this.contenedorArchivos) return;
 
+    // Actualizar el contador en el header del panel
+    const contador = document.getElementById('file-count');
+    if (contador) contador.textContent = archivos ? archivos.length : 0;
+
     // Si no hay archivos, muestra un mensaje y deshabilita el botón de extraer.
     if (!archivos || archivos.length === 0) {
       this.contenedorArchivos.innerHTML =
-        '<li class="no-files">No hay archivos subidos</li>';
+        '<li class="no-files">No hay archivos aún</li>';
       if (this.botonExtraer) this.botonExtraer.disabled = true;
       return;
     }
@@ -139,13 +146,11 @@ class GestorArchivos {
       .map(
         (archivo) => `
             <li class="file-item">
-                <div class="file-info">
-                    <span class="file-icon">📄</span>
-                    <span class="file-name">${archivo.filename}</span>
-                </div>
-                <button class="delete-btn" onclick="gestorArchivos.eliminarArchivo('${archivo.filename}')" title="Eliminar archivo">
-                    🗑️
-                </button>
+                <span class="file-icon">📄</span>
+                <span class="file-name">${archivo.filename}</span>
+                <button class="delete-btn"
+                        onclick="gestorArchivos.eliminarArchivo('${archivo.filename}')"
+                        title="Eliminar archivo">&#x1F5D1;</button>
             </li>`,
       )
       .join("");
