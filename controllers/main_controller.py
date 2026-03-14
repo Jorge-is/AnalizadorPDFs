@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, jsonify, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, jsonify, current_app, session
 from services.pdf_service import extraer_datos_pdf
 from services.file_service import guardar_pdf_seguro
 import os
@@ -21,15 +21,56 @@ def get_or_create_default_collection():
 def inicio():
     try:
         col = get_or_create_default_collection()
-        # Traer todos los artículos que ya han sido procesados.
+        # Inicializar sesión de lista actual si no existe
+        if 'current_session_ids' not in session:
+            session['current_session_ids'] = []
+            
+        # Traer los artículos subidos recientemente en esta sesión
+        current_ids = session['current_session_ids']
+        if current_ids:
+            articles = Article.query.filter(Article.id.in_(current_ids), Article.collection_id==col.id).all()
+        else:
+            articles = []
+            
+        lista_datos = []
+        for a in articles:
+            meta = a.get_metadata()
+            if not meta:
+                # Si está procesando o falló, inyectar el estado falso para la UI
+                meta = {
+                    "titulo": f"({a.status.upper()}) {a.filename}",
+                    "autores": "Pendiente...",
+                    "anio": "Pendiente...",
+                    "tema": "Pendiente...",
+                    "pais": "Pendiente...",
+                    "palabras": "Pendiente...",
+                    "paginas_imagenes": "Pendiente...",
+                    "resumen": "El documento está en cola de procesamiento..." if a.status in ['pending', 'processing'] else "Error en el procesamiento."
+                }
+            lista_datos.append(meta)
+        
+        return render_template("index.html", 
+                               lista_datos=lista_datos, 
+                               username=current_user.username,
+                               vista_actual="inicio")
+    except Exception as e:
+        return render_template("index.html", error=f"Error al cargar la página: {str(e)}")
+
+@main_bp.route("/historial", methods=["GET"])
+@login_required
+def historial():
+    try:
+        col = get_or_create_default_collection()
+        # Traer la totalidad del historial procesado con éxito en esta colección.
         articles = Article.query.filter_by(collection_id=col.id, status='completed').all()
         lista_datos = [a.get_metadata() for a in articles]
         
         return render_template("index.html", 
                                lista_datos=lista_datos, 
-                               username=current_user.username)
+                               username=current_user.username,
+                               vista_actual="historial")
     except Exception as e:
-        return render_template("index.html", error=f"Error al cargar la página: {str(e)}")
+        return render_template("index.html", error=f"Error al cargar la página de historial: {str(e)}")
 
 
 @main_bp.route("/estadisticas", methods=["GET", "POST"])
@@ -61,13 +102,18 @@ def buscar_titulo():
                 lista_datos = []
                 for article in articles_query:
                     metadata = article.get_metadata()
-                    if metadata and "titulo" in metadata and termino_busqueda in metadata["titulo"].lower():
-                        lista_datos.append(metadata)
+                    if metadata and isinstance(metadata, dict):
+                        titulo = metadata.get("titulo", "").lower()
+                        if termino_busqueda in titulo:
+                            lista_datos.append(metadata)
 
-                return render_template("index.html", lista_datos=lista_datos, username=current_user.username)
+                return render_template("index.html", 
+                                       lista_datos=lista_datos, 
+                                       username=current_user.username,
+                                       vista_actual="historial")
             except Exception as e:
-                return render_template("index.html", error=f"Error durante la búsqueda: {str(e)}")
-    return redirect(url_for("main.inicio", error="Ingresa un término"))
+                return render_template("index.html", error=f"Error durante la búsqueda: {str(e)}", vista_actual="historial")
+    return redirect(url_for("main.historial"))
 
 
 @main_bp.route("/extraer", methods=["POST", "GET"])
@@ -89,10 +135,19 @@ def extraer():
                     db.session.add(new_art)
                     db.session.commit()
                     
+                    if 'current_session_ids' not in session:
+                        session['current_session_ids'] = []
+                    
+                    # Añadir a la sesión actual 
+                    session['current_session_ids'].append(new_art.id)
+                    session.modified = True
+                    
                     # Llamada a IA delegada al trabajador de fondo (Celery)
                     tasks.procesar_pdf_background.delay(new_art.id, ruta_archivo)
                 except Exception as e:
                     print(f"Error procesando/encolando {archivo.filename}: {e}")
+                    from flask import flash
+                    flash(f"Aviso: El archivo {archivo.filename} se guardó pero hubo un problema encolando la IA. ¿Revisaste que Redis y el worker de Celery estén encendidos? Error: {str(e)[:50]}...", "error")
 
         return redirect(url_for("main.inicio"))
     return redirect(url_for("main.inicio", error="Por favor, adjunta archivos."))
@@ -178,13 +233,34 @@ def extraer_de_lista():
     import tasks
 
     procesados = 0
+    
+    if 'current_session_ids' not in session:
+        session['current_session_ids'] = []
+
     for art in pendientes:
         try:
             # Enviar a la cola de celery en segundo plano
-            tasks.procesar_pdf_background.delay(art.id, art.filepath)
+            result = tasks.procesar_pdf_background.delay(art.id, art.filepath)
             procesados += 1
+            if art.id not in session['current_session_ids']:
+                session['current_session_ids'].append(art.id)
         except Exception as e:
-            print(f"Error encolando {art.filename}: {e}")
+            error_str = str(e)
+            print(f"Error encolando {art.filename}: {error_str}")
+            from flask import flash
+            if "10061" in error_str or "Connection refused" in error_str or "ConnectionRefusedError" in error_str:
+                flash(
+                    "❌ No se pudo conectar a Redis. "
+                    "Asegúrate de que: (1) Docker esté corriendo, "
+                    "(2) el contenedor Redis use 'docker run -d -p 6379:6379 redis:alpine', "
+                    "(3) el worker Celery esté activo con: "
+                    "'celery -A celery_worker worker --pool=solo --loglevel=info'",
+                    "error"
+                )
+            else:
+                flash(f"Error al encolar tarea para {art.filename}: {error_str[:100]}", "error")
+            
+    session.modified = True
 
     return jsonify({
         'success': True,
@@ -210,5 +286,9 @@ def refrescar_datos():
         db.session.delete(art)
         
     db.session.commit()
+    
+    # Limpiamos también la sesión
+    session['current_session_ids'] = []
+    session.modified = True
     
     return redirect(url_for("main.inicio"))

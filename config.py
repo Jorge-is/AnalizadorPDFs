@@ -16,8 +16,8 @@ class Config:
 
     # Configuración de Celery
     CELERY = dict(
-        broker_url=os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0"),
-        result_backend=os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/0"),
+        broker_url=os.getenv("CELERY_BROKER_URL", "redis://127.0.0.1:6379/0"),
+        result_backend=os.getenv("CELERY_RESULT_BACKEND", "redis://127.0.0.1:6379/0"),
         task_ignore_result=False,
     )
 
