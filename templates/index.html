@@ -1,267 +1,248 @@
 <!doctype html>
 <html lang="es">
-    <head>
-        <!-- Configuración básica del documento -->
-        <meta charset="UTF-8" />
-        <title>Analizador Semántico RSL</title>
-        <!-- Enlaces a hojas de estilo y favicon -->
-        <link
-            rel="stylesheet"
-            href="https://fonts.googleapis.com/icon?family=Material+Icons"
-        />
-        <link
-            rel="stylesheet"
-            href="{{ url_for('static', filename='style.css') }}"
-        />
-        <link
-            rel="icon"
-            href="{{ url_for('static', filename='assets/logo.png') }}"
-            type="image/png"
-        />
-    </head>
-    <body>
-        <!-- Encabezado de la página con logo y título -->
-        <header style="position: relative;">
-            <div style="position: absolute; top: 10px; right: 20px;">
-                {% if current_user.is_authenticated %}
-                    <span>Hola, {{ current_user.username }}</span> | 
-                    <a href="{{ url_for('auth.logout') }}" style="color: #d9534f; text-decoration: none; font-weight: bold;">Cerrar Sesión</a>
-                {% endif %}
-            </div>
-            <img
-                src="{{ url_for('static', filename='assets/logo.png') }}"
-                alt="Logo del sitio"
-            />
-            <h1>Analizador Semántico para RSL</h1>
-            <p class="intro-text">
-                Analiza artículos científicos en PDF para extraer datos útiles
-                para estudiantes e investigadores.
-            </p>
-            <nav style="margin-top: 15px; display: flex; gap: 20px;">
-                <a href="{{ url_for('main.inicio') }}" class="btn {% if vista_actual == 'inicio' %}btn-active{% endif %}">Sesión Actual</a>
-                <a href="{{ url_for('main.historial') }}" class="btn {% if vista_actual == 'historial' %}btn-active{% endif %}">Historial Completo</a>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analizador Semántico RSL</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='assets/logo.png') }}" type="image/png" />
+</head>
+<body>
+<div class="app-shell">
+
+    <!-- ═══════════════ HEADER ═══════════════ -->
+    <header class="site-header">
+        <div class="site-header__inner">
+            <!-- Brand -->
+            <a href="{{ url_for('main.inicio') }}" class="site-header__brand">
+                <img src="{{ url_for('static', filename='assets/logo.png') }}"
+                     alt="Logo RSL"
+                     class="site-header__logo" />
+                <span class="site-header__title">RSL <span>Analyzer</span></span>
+            </a>
+
+            <!-- Navigation -->
+            <nav class="site-header__nav">
+                <a href="{{ url_for('main.inicio') }}"
+                   class="nav-link {% if vista_actual == 'inicio' %}nav-link--active{% endif %}">
+                    Sesión Actual
+                </a>
+                <a href="{{ url_for('main.historial') }}"
+                   class="nav-link {% if vista_actual == 'historial' %}nav-link--active{% endif %}">
+                    Historial
+                </a>
+                <a href="{{ url_for('main.estadisticas') }}"
+                   class="nav-link">
+                    Estadísticas
+                </a>
             </nav>
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <div style="margin-top: 20px; text-align: center; width: 100%;">
-                    {% for category, message in messages %}
-                        <div class="status-message {{ category }}">{{ message }}</div>
-                    {% endfor %}
-                    </div>
-                {% endif %}
-            {% endwith %}
-        </header>
 
-        <!-- Contenedor principal de la aplicación -->
-        <div class="container">
-            <!-- Sección izquierda: Carga y gestión de archivos -->
-            <div id="files-list">
-                <h3>Archivos Subidos</h3>
-                <!-- Área para seleccionar y subir archivos -->
-                <div id="file-upload-area">
-                    <input
-                        type="file"
-                        id="file-input"
-                        accept=".pdf"
-                        style="display: none"
-                    />
-                    <button type="button" id="upload-btn" class="btn">
-                        Seleccionar Archivo PDF
-                    </button>
-                    <!-- Muestra mensajes de estado (subiendo, éxito, error) -->
-                    <div id="upload-status"></div>
-                </div>
-                <!-- Lista donde se mostrarán los archivos subidos dinámicamente -->
-                <ul id="files-container"></ul>
-                <!-- Formulario para iniciar la extracción de datos de los archivos en la lista -->
-                <form id="extract-form" class="form-section">
-                    <button type="submit" class="btn" id="extract-btn" disabled>
-                        Extraer Datos
-                    </button>
-                </form>
+            <!-- User area -->
+            <div class="site-header__user">
+                {% if current_user.is_authenticated %}
+                    <span class="user-badge">
+                        <span class="user-badge__dot"></span>
+                        {{ current_user.username }}
+                    </span>
+                    <a href="{{ url_for('auth.logout') }}" class="btn-logout">Salir</a>
+                {% endif %}
             </div>
+        </div>
+    </header>
 
-            <!-- Sección derecha: Búsqueda y visualización de resultados -->
-            <div>
-                {% if vista_actual == 'historial' %}
-                    <h2 style="text-align: center; margin-bottom: 20px;">Historial de Todos los Artículos Procesados</h2>
-                {% else %}
-                    <h2 style="text-align: center; margin-bottom: 20px;">Análisis de la Sesión Actual</h2>
-                    
-                    <!-- Formulario para buscar artículos por tema en la DB completa (historial) -->
-                    <form method="POST" action="/buscar" class="form-section" style="margin-top: 10px;">
-                        <div>
-                            <input
-                                type="text"
-                                name="buscar_tema"
-                                placeholder="Buscar cualquier término en tu historial..."
-                            />
-                            <button type="submit" class="btn">Buscar</button>
-                        </div>
+    <!-- ═══════════════ FLASH MESSAGES ═══════════════ -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div style="max-width: var(--content-max); margin: 0 auto; padding: 0 var(--space-6);">
+            <div class="flash-container">
+                {% for category, message in messages %}
+                    <div class="alert alert--{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    {% endwith %}
 
-                        <!-- Muestra un mensaje de error si ocurre alguno durante la búsqueda -->
-                        {% if error %}
-                        <p class="error-message" style="margin-top: 20px">
-                            {{ error }}
-                        </p>
+    <!-- ═══════════════ MAIN CONTENT ═══════════════ -->
+    <main class="app-main">
+
+        <!-- Page header -->
+        <div class="page-header">
+            {% if vista_actual == 'historial' %}
+                <h1 class="page-header__title">Historial <span>Completo</span></h1>
+                <p class="page-header__desc">Todos los artículos procesados y almacenados en tu colección.</p>
+            {% else %}
+                <h1 class="page-header__title">Analizador Semántico para <span>RSL</span></h1>
+                <p class="page-header__desc">Sube PDFs, extrae datos claves con IA y exporta los resultados.</p>
+            {% endif %}
+        </div>
+
+        <!-- Two-column app layout -->
+        <div class="app-layout">
+
+            <!-- ─── LEFT: File Manager Panel ─── -->
+            <aside class="file-panel">
+                <div class="file-panel__header">
+                    <span class="file-panel__title">Archivos</span>
+                    <span class="file-panel__count" id="file-count">0</span>
+                </div>
+                <div class="file-panel__body">
+                    <!-- Upload zone -->
+                    <input type="file" id="file-input" accept=".pdf" style="display:none" />
+                    <div class="upload-zone" id="upload-btn" role="button" tabindex="0"
+                         aria-label="Seleccionar archivo PDF">
+                        <span class="upload-zone__icon">📂</span>
+                        <span class="upload-zone__text">Seleccionar PDF</span>
+                        <span class="upload-zone__hint">Solo archivos .pdf</span>
+                    </div>
+
+                    <!-- Status message -->
+                    <div id="upload-status"></div>
+
+                    <!-- Files list -->
+                    <ul id="files-container"></ul>
+
+                    <!-- Extract button -->
+                    <button type="button" class="btn btn--primary btn--full" id="extract-btn" disabled>Extraer Datos</button>
+                </div>
+            </aside>
+
+            <!-- ─── RIGHT: Results Panel ─── -->
+            <section class="content-panel">
+                <div class="content-panel__header">
+                    <span class="content-panel__title">
+                        {% if vista_actual == 'historial' %}
+                            Artículos en Historial
+                        {% else %}
+                            Resultados
                         {% endif %}
+                    </span>
+
+                    {% if vista_actual != 'historial' %}
+                    <!-- Search form -->
+                    <form method="POST" action="/buscar" class="search-row">
+                        <input type="text" name="buscar_tema" class="form-input" placeholder="Buscar en el historial..." />
+                        <button type="submit" class="btn btn--ghost">Buscar</button>
                     </form>
-                    
-                    <div class="demo" style="margin-top:20px;">
-                        <div class="line"></div>
-                        <h3>Resultados</h3>
-                        <div class="line"></div>
-                    </div>
-                {% endif %}
+                    {% endif %}
+                </div>
 
-                <!-- Contenedor para los datos extraídos -->
-                <div class="data-container">
-                    <!-- Solo se muestra si hay datos en la lista `lista_datos` -->
+                <div class="content-panel__body">
+                    {% if error %}
+                        <div class="alert alert--error">{{ error }}</div>
+                    {% endif %}
+
                     {% if lista_datos %}
-                    <!-- Opciones para mostrar u ocultar columnas de la tabla -->
-                    <div class="options-container">
-                        <h3>Selecciona las columnas a mostrar:</h3>
-                        <div>
-                            <label
-                                ><input
-                                    type="checkbox"
-                                    name="autores"
-                                    onchange="alternarColumna(this, 'autores')"
-                                    checked
-                                />Autores</label
-                            >
-                            <label
-                                ><input
-                                    type="checkbox"
-                                    name="anio"
-                                    onchange="alternarColumna(this, 'anio')"
-                                    checked
-                                />Año</label
-                            >
-                            <label
-                                ><input
-                                    type="checkbox"
-                                    name="tema"
-                                    onchange="alternarColumna(this, 'tema')"
-                                    checked
-                                />Tema</label
-                            >
-                            <label
-                                ><input
-                                    type="checkbox"
-                                    name="pais"
-                                    onchange="alternarColumna(this, 'pais')"
-                                    checked
-                                />País</label
-                            >
-                            <label
-                                ><input
-                                    type="checkbox"
-                                    name="palabras"
-                                    onchange="alternarColumna(this, 'palabras')"
-                                />Palabras Clave</label
-                            >
-                            <label
-                                ><input
-                                    type="checkbox"
-                                    name="paginas_imagenes"
-                                    onchange="alternarColumna(this, 'paginas_imagenes')"
-                                />Páginas / Imágenes</label
-                            >
-                            <label
-                                ><input
-                                    type="checkbox"
-                                    name="resumen"
-                                    onchange="alternarColumna(this, 'resumen')"
-                                />Resumen</label
-                            >
-                        </div>
+
+                    <!-- Column visibility toggles -->
+                    <div class="column-toggle">
+                        <span class="column-toggle__label">Columnas visibles</span>
+                        <label class="toggle-check">
+                            <input type="checkbox" name="autores"
+                                   onchange="alternarColumna(this, 'autores')" checked />
+                            Autores
+                        </label>
+                        <label class="toggle-check">
+                            <input type="checkbox" name="anio" onchange="alternarColumna(this, 'anio')" checked />
+                            Año
+                        </label>
+                        <label class="toggle-check">
+                            <input type="checkbox" name="tema" onchange="alternarColumna(this, 'tema')" checked />
+                            Tema
+                        </label>
+                        <label class="toggle-check">
+                            <input type="checkbox" name="pais" onchange="alternarColumna(this, 'pais')" checked />
+                            País
+                        </label>
+                        <label class="toggle-check">
+                            <input type="checkbox" name="palabras" onchange="alternarColumna(this, 'palabras')" />
+                            Palabras Clave
+                        </label>
+                        <label class="toggle-check">
+                            <input type="checkbox" name="paginas_imagenes" onchange="alternarColumna(this, 'paginas_imagenes')" />
+                            Páginas / Imgs
+                        </label>
+                        <label class="toggle-check">
+                            <input type="checkbox" name="resumen" onchange="alternarColumna(this, 'resumen')" />
+                            Resumen
+                        </label>
                     </div>
 
-                    <!-- Contenedor de la tabla de resultados -->
+                    <!-- Data table -->
                     <div class="table-container">
-                        <table class="mui-table">
+                        <table class="data-table">
                             <thead>
                                 <tr>
-                                    <!-- Encabezados de la tabla -->
                                     <th data-columna="titulo">Título</th>
                                     <th data-columna="autores">Autores</th>
                                     <th data-columna="anio">Año</th>
                                     <th data-columna="tema">Tema</th>
                                     <th data-columna="pais">País</th>
-                                    <th data-columna="palabras">
-                                        Palabras Clave
-                                    </th>
-                                    <th data-columna="paginas_imagenes">
-                                        Páginas / Imágenes
-                                    </th>
+                                    <th data-columna="palabras">Palabras Clave</th>
+                                    <th data-columna="paginas_imagenes">Págs / Imgs</th>
                                     <th data-columna="resumen">Resumen</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <!-- Itera sobre la lista de datos para crear una fila por cada artículo -->
                                 {% for dato in lista_datos %}
                                 <tr>
-                                    <td data-columna="titulo">
-                                        {{ dato["titulo"] }}
-                                    </td>
-                                    <td data-columna="autores">
-                                        {{ dato["autores"] }}
-                                    </td>
-                                    <td data-columna="anio">
-                                        {{ dato["anio"] }}
-                                    </td>
-                                    <td data-columna="tema">
-                                        {{ dato["tema"] }}
-                                    </td>
-                                    <td data-columna="pais">
-                                        {{ dato["pais"] }}
-                                    </td>
-                                    <td data-columna="palabras">
-                                        {{ dato["palabras"] }}
-                                    </td>
-                                    <td data-columna="paginas_imagenes">
-                                        {{ dato['paginas_imagenes'] }}
-                                    </td>
-                                    <td data-columna="resumen">
-                                        {{ dato["resumen"] }}
-                                    </td>
+                                    <td data-columna="titulo">{{ dato["titulo"] }}</td>
+                                    <td data-columna="autores">{{ dato["autores"] }}</td>
+                                    <td data-columna="anio">{{ dato["anio"] }}</td>
+                                    <td data-columna="tema">{{ dato["tema"] }}</td>
+                                    <td data-columna="pais">{{ dato["pais"] }}</td>
+                                    <td data-columna="palabras">{{ dato["palabras"] }}</td>
+                                    <td data-columna="paginas_imagenes">{{ dato["paginas_imagenes"] }}</td>
+                                    <td data-columna="resumen">{{ dato["resumen"] }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
 
-                    <!-- Contenedor para los botones de acción (exportar y ver estadísticas) -->
-                    <div class="buttons-container">
-                        <div class="export-container">
-                            <p>
-                                ¿Quieres exportar los resultados a un archivo
-                                Excel?
-                            </p>
-                            <a
-                                href="#"
-                                class="btn"
-                                onclick="enviarDatosExcel(event)"
-                                >Exportar a Excel</a
-                            >
-                        </div>
-                        <div class="export-container">
-                            <p>
-                                ¿Quieres conocer más acerca de tus resultados?
-                            </p>
-                            <a href="/estadisticas" class="btn"
-                                >Ver más detalles</a
-                            >
-                        </div>
+                    <!-- Actions bar -->
+                    <div class="actions-bar">
+                        <a href="/estadisticas" class="btn btn--ghost">Ver Estadísticas</a>
+                        <a href="#" class="btn btn--primary" onclick="enviarDatosExcel(event)">Exportar a Excel</a>
+                    </div>
+
+                    {% else %}
+                    <!-- Empty state -->
+                    <div class="empty-state">
+                        <span class="empty-state__icon">📄</span>
+                        <p class="empty-state__title">Sin resultados aún</p>
+                        <p class="empty-state__desc">
+                            {% if vista_actual == 'historial' %}
+                                Tu historial está vacío. Procesa algunos artículos primero.
+                            {% else %}
+                                Sube archivos PDF y presiona «Extraer Datos» para comenzar.
+                            {% endif %}
+                        </p>
                     </div>
                     {% endif %}
                 </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- ═══════════════ FOOTER ═══════════════ -->
+    <footer class="site-footer">
+        <div class="site-footer__inner">
+            <p class="site-footer__copy">
+                &copy; 2025 <span>RSL Analyzer</span> - UTP
+            </p>
+            <div class="site-footer__links">
+                <a href="{{ url_for('main.inicio') }}">Sesión</a>
+                <a href="{{ url_for('main.historial') }}">Historial</a>
+                <a href="{{ url_for('main.estadisticas') }}">Estadísticas</a>
             </div>
         </div>
+    </footer>
 
-        <!-- Scripts de JavaScript que controlan la interactividad de la página -->
-        <script src="{{ url_for('static', filename='script.js') }}"></script>
-        <script src="{{ url_for('static', filename='file-manager.js') }}"></script>
-    </body>
+</div><!-- /.app-shell -->
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+<script src="{{ url_for('static', filename='file-manager.js') }}"></script>
+</body>
 </html>
