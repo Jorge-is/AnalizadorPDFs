@@ -1184,3 +1184,196 @@ body {
         width: 100%;
     }
 }
+
+
+/* ═══════════════════════════════════════════
+   CONTENT PANEL — ACTIONS HEADER AREA
+═══════════════════════════════════════════ */
+.content-panel__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+}
+
+/* Historial: panel de ancho completo (sin sidebar) */
+.content-panel--full {
+    margin-top: 0;
+}
+
+
+/* ═══════════════════════════════════════════
+   ROW SELECTION (checkbox column)
+═══════════════════════════════════════════ */
+.col-select {
+    width: 40px;
+    text-align: center;
+    vertical-align: middle;
+    padding: var(--space-2) var(--space-3) !important;
+}
+
+.col-select .toggle-check {
+    justify-content: center;
+    margin: 0;
+}
+
+.data-row.is-selected {
+    background: var(--color-accent-dim) !important;
+}
+
+.selection-info {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    margin-right: auto;  /* empuja botones a la derecha */
+    font-variant-numeric: tabular-nums;
+}
+
+#selected-count {
+    color: var(--color-accent);
+    font-weight: var(--weight-semibold);
+}
+
+
+/* ═══════════════════════════════════════════
+   BUTTON SIZES
+═══════════════════════════════════════════ */
+.btn--sm {
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--text-xs);
+    border-radius: var(--radius-sm);
+}
+
+
+/* ═══════════════════════════════════════════
+   FLASH WRAPPER (fuera del contenedor principal)
+═══════════════════════════════════════════ */
+.flash-wrapper {
+    max-width: var(--content-max);
+    margin: 0 auto;
+    padding: 0 var(--space-6);
+}
+
+
+/* ═══════════════════════════════════════════
+   INLINE LINK
+═══════════════════════════════════════════ */
+.link-inline {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    background: transparent;
+    padding: 0;
+    display: inline;
+    font-weight: var(--weight-medium);
+    transition: color var(--transition-fast);
+}
+
+.link-inline:hover {
+    color: var(--color-accent-hover);
+    background: transparent;
+}
+
+
+/* ═══════════════════════════════════════════
+   KPI CARDS (Estadísticas)
+═══════════════════════════════════════════ */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+}
+
+.kpi-card {
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5) var(--space-6);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+    transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.kpi-card:hover {
+    border-color: var(--color-border-focus);
+    box-shadow: var(--shadow-glow);
+}
+
+.kpi-card__icon {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.kpi-card__value {
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-bold);
+    color: var(--color-accent);
+    letter-spacing: -0.04em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.kpi-card__label {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+}
+
+
+/* ═══════════════════════════════════════════
+   CHART CARD VARIANTS
+═══════════════════════════════════════════ */
+/* Mapa ocupa todo el ancho */
+.chart-card--wide {
+    grid-column: 1 / -1;
+}
+
+.chart-card__body--tall {
+    height: 440px;
+}
+
+/* Canvas dentro de chart-card */
+.chart-card__body canvas {
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: var(--radius-sm);
+}
+
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE — ADDITIONS
+═══════════════════════════════════════════ */
+@media (max-width: 1024px) {
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-3);
+    }
+
+    .kpi-card__value {
+        font-size: var(--text-2xl);
+    }
+
+    .content-panel__actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .actions-bar {
+        flex-wrap: wrap;
+    }
+
+    .selection-info {
+        width: 100%;
+        text-align: center;
+    }
+}
