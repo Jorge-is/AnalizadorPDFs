@@ -1,0 +1,47 @@
+<header class="site-header">
+    <div class="site-header__inner">
+
+        <!-- Brand -->
+        <a href="{{ url_for('main.inicio') }}" class="site-header__brand">
+            <img src="{{ url_for('static', filename='assets/logo.png') }}"
+                 alt="Logo RSL Analyzer"
+                 class="site-header__logo" />
+            <span class="site-header__title">RSL <span>Analyzer</span></span>
+        </a>
+
+        <!-- Navigation (oculta en páginas de auth) -->
+        {% if vista_actual != 'auth' %}
+        <nav class="site-header__nav" aria-label="Navegación principal">
+            <a href="{{ url_for('main.inicio') }}"
+               class="nav-link {% if vista_actual == 'inicio' %}nav-link--active{% endif %}"
+               aria-current="{% if vista_actual == 'inicio' %}page{% endif %}">
+                Sesión Actual
+            </a>
+            <a href="{{ url_for('main.historial') }}"
+               class="nav-link {% if vista_actual == 'historial' %}nav-link--active{% endif %}"
+               aria-current="{% if vista_actual == 'historial' %}page{% endif %}">
+                Historial
+            </a>
+            <a href="{{ url_for('main.estadisticas') }}"
+               class="nav-link {% if vista_actual == 'estadisticas' %}nav-link--active{% endif %}"
+               aria-current="{% if vista_actual == 'estadisticas' %}page{% endif %}">
+                Estadísticas
+            </a>
+        </nav>
+        {% endif %}
+
+        <!-- User area -->
+        <div class="site-header__user">
+            {% if current_user.is_authenticated %}
+                <span class="user-badge">
+                    <span class="user-badge__dot"></span>
+                    {{ current_user.username }}
+                </span>
+                <a href="{{ url_for('auth.logout') }}" class="btn-logout" aria-label="Cerrar sesión">
+                    Salir
+                </a>
+            {% endif %}
+        </div>
+
+    </div>
+</header>

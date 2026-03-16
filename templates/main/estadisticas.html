@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Estadísticas &mdash; RSL Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='assets/logo.png') }}" type="image/png" />
+</head>
+<body>
+    <div class="app-shell">
+
+        {% set vista_actual = 'estadisticas' %}
+        {% include 'partials/header.html' %}
+        {% include 'partials/flash_messages.html' %}
+
+        <main class="stats-page">
+            <div class="page-header">
+                <h1 class="page-header__title">Estadísticas <span>Visuales</span></h1>
+                <p class="page-header__desc">
+                    Análisis visual de tu colección de artículos científicos.
+                </p>
+            </div>
+
+            <!-- KPI Cards -->
+            <div class="kpi-grid" id="kpi-grid">
+                <div class="kpi-card">
+                    <span class="kpi-card__value" id="kpi-total">—</span>
+                    <span class="kpi-card__label">Total artículos</span>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-card__value" id="kpi-paises">—</span>
+                    <span class="kpi-card__label">Países únicos</span>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-card__value" id="kpi-anios">—</span>
+                    <span class="kpi-card__label">Años cubiertos</span>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-card__value" id="kpi-reciente">—</span>
+                    <span class="kpi-card__label">Año más reciente</span>
+                </div>
+            </div>
+
+            <!-- Charts grid -->
+            <div class="stats-grid">
+
+                <!-- Artículos por Año — Bar chart -->
+                <div class="chart-card">
+                    <div class="chart-card__header">
+                        <span class="chart-card__title">Artículos por Año</span>
+                        <button class="btn btn--ghost btn--sm"
+                                onclick="exportarGrafico('yearChart','articulos-por-anio')">
+                            Exportar
+                        </button>
+                    </div>
+                    <div class="chart-card__body">
+                        <canvas id="yearChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Distribución por País — Doughnut -->
+                <div class="chart-card">
+                    <div class="chart-card__header">
+                        <span class="chart-card__title">Distribución por País</span>
+                        <button class="btn btn--ghost btn--sm"
+                                onclick="exportarGrafico('countryChart','distribucion-paises')">
+                            Exportar
+                        </button>
+                    </div>
+                    <div class="chart-card__body">
+                        <canvas id="countryChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Top 10 Países — Horizontal Bar -->
+                <div class="chart-card">
+                    <div class="chart-card__header">
+                        <span class="chart-card__title">Top Países (ranking)</span>
+                        <button class="btn btn--ghost btn--sm"
+                                onclick="exportarGrafico('topPaisesChart','top-paises')">
+                            Exportar
+                        </button>
+                    </div>
+                    <div class="chart-card__body">
+                        <canvas id="topPaisesChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Tendencia acumulada — Line chart -->
+                <div class="chart-card">
+                    <div class="chart-card__header">
+                        <span class="chart-card__title">Tendencia de Publicación</span>
+                        <button class="btn btn--ghost btn--sm"
+                                onclick="exportarGrafico('trendChart','tendencia-publicacion')">
+                            Exportar
+                        </button>
+                    </div>
+                    <div class="chart-card__body">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Mapa coroplético -->
+                <div class="chart-card chart-card--wide">
+                    <div class="chart-card__header">
+                        <span class="chart-card__title">Mapa de Países con Publicaciones</span>
+                        <button class="btn btn--ghost btn--sm"
+                                onclick="exportarGrafico('geoChart','mapa-paises')">
+                            Exportar
+                        </button>
+                    </div>
+                    <div class="chart-card__body chart-card__body--tall">
+                        <canvas id="geoChart"></canvas>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Empty state (se muestra si no hay datos) -->
+            <div class="empty-state" id="empty-stats" style="display:none;">
+                <span class="empty-state__icon">📊</span>
+                <p class="empty-state__title">Sin datos para graficar</p>
+                <p class="empty-state__desc">
+                    Aún no tienes artículos procesados.
+                    <a href="{{ url_for('main.inicio') }}" class="link-inline">Analiza algunos PDFs</a>
+                    para ver las estadísticas.
+                </p>
+            </div>
+
+        </main>
+
+        {% include 'partials/footer.html' %}
+
+    </div>
+
+    <!-- Chart.js + Geo plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <!-- <script src="https://unpkg.com/chartjs-chart-geo@3.5.2/build/index.umd.min.js"></script> -->
+    <script src="https://unpkg.com/chartjs-chart-geo@4.3.3/build/index.umd.min.js"></script>
+
+    <script src="{{ url_for('static', filename='js/estadisticas.js') }}"></script>
+</body>
+</html>

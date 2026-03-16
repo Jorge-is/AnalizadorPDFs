@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sesión Actual &mdash; RSL Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='assets/logo.png') }}" type="image/png" />
+</head>
+<body>
+    <div class="app-shell">
+
+        {% set vista_actual = 'inicio' %}
+        {% include 'partials/header.html' %}
+        {% include 'partials/flash_messages.html' %}
+        
+        <!-- MAIN CONTENT -->
+        <main class="app-main">
+
+            <!-- Page header -->
+            <div class="page-header">
+                <h1 class="page-header__title">Analizador Semántico para <span>RSL</span></h1>
+                <p class="page-header__desc">Sube PDFs, extrae datos claves con IA y exporta los resultados.</p>
+            </div>
+
+            <!-- Two-column layout -->
+            <div class="app-layout">
+
+                <!-- ─── LEFT: File Manager Panel ─── -->
+                <aside class="file-panel">
+                    <div class="file-panel__header">
+                        <span class="file-panel__title">Archivos</span>
+                        <span class="file-panel__count" id="file-count">0</span>
+                    </div>
+                    <div class="file-panel__body">
+
+                        <!-- Hidden file input -->
+                        <input type="file" id="file-input" accept=".pdf" style="display:none"
+                            aria-label="Seleccionar PDF" />
+
+                        <!-- Upload zone -->
+                        <div class="upload-zone" id="upload-btn" role="button" tabindex="0"
+                            aria-label="Haz clic o presiona Enter para seleccionar un PDF">
+                            <span class="upload-zone__icon">📂</span>
+                            <span class="upload-zone__text">Seleccionar PDF</span>
+                            <span class="upload-zone__hint">Solo archivos .pdf</span>
+                        </div>
+
+                        <!-- Upload status -->
+                        <div id="upload-status" role="status" aria-live="polite"></div>
+
+                        <!-- Files list -->
+                        <ul id="files-container" aria-label="Archivos cargados"></ul>
+
+                        <!-- Extract button -->
+                        <button type="button" class="btn btn--primary btn--full" id="extract-btn" disabled aria-describedby="extract-hint">
+                            Extraer Datos
+                        </button>
+                        <p id="extract-hint" class="upload-zone__hint" style="text-align:center;">
+                            Agrega archivos para habilitar
+                        </p>
+                    </div>
+                </aside>
+
+                <!-- ─── RIGHT: Results Panel ─── -->
+                <section class="content-panel" aria-label="Resultados de la sesión">
+                    <div class="content-panel__header">
+                        <span class="content-panel__title">Resultados</span>
+                        <div class="content-panel__actions">
+                            {% if lista_datos %}
+                            <a href="{{ url_for('main.limpiar_sesion') }}"
+                            class="btn btn--ghost btn--sm"
+                            title="Limpia los resultados de esta sesión. Los datos permanecen en el Historial."
+                            onclick="return confirm('¿Limpiar los resultados de esta sesión? Los datos seguirán disponibles en el Historial.')">
+                                Limpiar Sesión
+                            </a>
+                            {% endif %}
+                            <form method="POST" action="{{ url_for('main.buscar_titulo') }}" class="search-row">
+                                <input type="text" name="buscar_tema" class="form-input" placeholder="Buscar en historial..." aria-label="Buscar artículos" />
+                                <button type="submit" class="btn btn--ghost">Buscar</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="content-panel__body">
+                        {% if error %}
+                            <div class="alert alert--error" role="alert">{{ error }}</div>
+                        {% endif %}
+
+                        {% if lista_datos %}
+
+                        <!-- Column toggles -->
+                        <div class="column-toggle" role="group" aria-label="Columnas visibles">
+                            <span class="column-toggle__label">Columnas visibles</span>
+                            <label class="toggle-check">
+                                <input type="checkbox" name="autores" onchange="alternarColumna(this,'autores')" checked />
+                                Autores
+                            </label>
+                            <label class="toggle-check">
+                                <input type="checkbox" name="anio" onchange="alternarColumna(this,'anio')" checked />
+                                Año
+                            </label>
+                            <label class="toggle-check">
+                                <input type="checkbox" name="tema" onchange="alternarColumna(this,'tema')" checked />
+                                Tema
+                            </label>
+                            <label class="toggle-check">
+                                <input type="checkbox" name="pais" onchange="alternarColumna(this,'pais')" checked />
+                                País
+                            </label>
+                            <label class="toggle-check">
+                                <input type="checkbox" name="palabras" onchange="alternarColumna(this,'palabras')" />
+                                Palabras Clave
+                            </label>
+                            <label class="toggle-check">
+                                <input type="checkbox" name="paginas_imagenes" onchange="alternarColumna(this,'paginas_imagenes')" />
+                                Págs / Imgs
+                            </label>
+                            <label class="toggle-check">
+                                <input type="checkbox" name="resumen" onchange="alternarColumna(this,'resumen')" />
+                                Resumen
+                            </label>
+                        </div>
+
+                        <!-- Data table with row selection -->
+                        <div class="table-container">
+                            <table class="data-table" id="results-table">
+                                <thead>
+                                    <tr>
+                                        <th class="col-select">
+                                            <label class="toggle-check" title="Seleccionar todo">
+                                                <input type="checkbox" id="select-all"
+                                                    onchange="toggleSelectAll(this)"
+                                                    aria-label="Seleccionar todas las filas" />
+                                            </label>
+                                        </th>
+                                        <th data-columna="titulo">Título</th>
+                                        <th data-columna="autores">Autores</th>
+                                        <th data-columna="anio">Año</th>
+                                        <th data-columna="tema">Tema</th>
+                                        <th data-columna="pais">País</th>
+                                        <th data-columna="palabras">Palabras Clave</th>
+                                        <th data-columna="paginas_imagenes">Págs / Imgs</th>
+                                        <th data-columna="resumen">Resumen</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for dato in lista_datos %}
+                                    <tr class="data-row">
+                                        <td class="col-select">
+                                            <label class="toggle-check">
+                                                <input type="checkbox" class="row-select"
+                                                    onchange="actualizarContadorSeleccion()"
+                                                    aria-label="Seleccionar fila {{ loop.index }}" />
+                                            </label>
+                                        </td>
+                                        <td data-columna="titulo">{{ dato["titulo"] }}</td>
+                                        <td data-columna="autores">{{ dato["autores"] }}</td>
+                                        <td data-columna="anio">{{ dato["anio"] }}</td>
+                                        <td data-columna="tema">{{ dato["tema"] }}</td>
+                                        <td data-columna="pais">{{ dato["pais"] }}</td>
+                                        <td data-columna="palabras">{{ dato["palabras"] }}</td>
+                                        <td data-columna="paginas_imagenes">{{ dato["paginas_imagenes"] }}</td>
+                                        <td data-columna="resumen">{{ dato["resumen"] }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Actions bar -->
+                        <div class="actions-bar">
+                            <span class="selection-info" id="selection-info" aria-live="polite">
+                                <span id="selected-count">0</span> fila(s) seleccionada(s)
+                            </span>
+                            <a href="{{ url_for('main.estadisticas') }}" class="btn btn--ghost">
+                                Ver Estadísticas
+                            </a>
+                            <button type="button" class="btn btn--primary" onclick="exportarExcel(event)">
+                                Exportar Excel
+                            </button>
+                        </div>
+
+                        {% else %}
+                        <!-- Empty state -->
+                        <div class="empty-state">
+                            <span class="empty-state__icon">📄</span>
+                            <p class="empty-state__title">Sin resultados en esta sesión</p>
+                            <p class="empty-state__desc">
+                                Sube archivos PDF y presiona «Extraer Datos» para comenzar.
+                                Consulta tu <a href="{{ url_for('main.historial') }}" class="link-inline">Historial</a>
+                                para ver análisis anteriores.
+                            </p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        {% include 'partials/footer.html' %}
+
+    </div>
+
+    <script src="{{ url_for('static', filename='js/file-manager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/table.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/export.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crear Cuenta &mdash; RSL Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='assets/logo.png') }}" type="image/png" />
+</head>
+<body>
+    <div class="app-shell">
+
+        {% set vista_actual = 'auth' %}
+        {% include 'partials/header.html' %}
+
+        <main class="auth-page">
+            <div class="auth-card">
+                <div class="auth-card__header">
+                    <img src="{{ url_for('static', filename='assets/logo.png') }}"
+                        alt="Logo RSL Analyzer" class="auth-card__logo" />
+                    <h1 class="auth-card__title">Crear cuenta</h1>
+                    <p class="auth-card__subtitle">Comienza a organizar y analizar tus artículos científicos.</p>
+                </div>
+
+                {% include 'partials/flash_messages.html' %}
+
+                <form method="POST" action="{{ url_for('auth.register') }}" novalidate>
+                    <div class="form-group">
+                        <label class="form-label" for="username">Usuario</label>
+                        <input class="form-input" type="text" id="username" name="username"
+                            placeholder="Elige un nombre de usuario" required autocomplete="username" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="password">Contraseña</label>
+                        <input class="form-input" type="password" id="password" name="password"
+                            placeholder="Elige una contraseña segura" required autocomplete="new-password" />
+                    </div>
+                    <button type="submit" class="btn btn--primary btn--full">Crear Cuenta</button>
+                </form>
+
+                <div class="auth-card__footer">
+                    ¿Ya tienes cuenta?
+                    <a href="{{ url_for('auth.login') }}">Inicia sesión</a>
+                </div>
+            </div>
+        </main>
+
+        {% include 'partials/footer.html' %}
+    </div>
+</body>
+</html>

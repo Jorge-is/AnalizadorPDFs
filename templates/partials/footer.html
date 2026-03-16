@@ -1,0 +1,20 @@
+{# =============================================================
+   Partial: _footer.html
+   Uso: {% include 'partials/_footer.html' %}
+   ============================================================= #}
+<footer class="site-footer">
+    <div class="site-footer__inner">
+        <p class="site-footer__copy">
+            &copy; 2025 <span>RSL Analyzer</span> &mdash; UTP
+        </p>
+
+        <!-- Navigation (oculta en páginas de auth) -->
+        {% if vista_actual != 'auth' %}
+        <nav class="site-footer__links" aria-label="Navegación de pie">
+            <a href="{{ url_for('main.inicio') }}">Sesión</a>
+            <a href="{{ url_for('main.historial') }}">Historial</a>
+            <a href="{{ url_for('main.estadisticas') }}">Estadísticas</a>
+        </nav>
+        {% endif %}
+    </div>
+</footer>
