@@ -28,7 +28,7 @@ db.init_app(app)
 
 # Inicializar sistema de Autenticación
 login_manager = LoginManager()
-login_manager.login_view = 'auth.login'
+login_manager.login_view = 'auth.login'  # redirige a /login si no se ha autenticado
 login_manager.login_message = "Por favor, inicia sesión para acceder a esta página."
 login_manager.init_app(app)
 
