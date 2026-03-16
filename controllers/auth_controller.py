@@ -22,7 +22,7 @@ def login():
         else:
             flash('Usuario o contraseña incorrectos', 'error')
             
-    return render_template('login.html')
+    return render_template('auth/login.html')
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
@@ -52,7 +52,7 @@ def register():
             flash('Error al crear usuario. Es posible que el nombre de usuario ya exista.', 'error')
             return redirect(url_for('auth.register'))
         
-    return render_template('register.html')
+    return render_template('auth/register.html')
 
 @auth_bp.route('/logout')
 @login_required

@@ -1,98 +1,167 @@
-# Importación de librerías necesarias para la exportación y descarga de archivos
-from flask import Blueprint, request, jsonify, url_for, send_from_directory, current_app
-from openpyxl import Workbook                      # Para crear archivos Excel
-from openpyxl.styles import PatternFill, Border, Side, Font, Alignment  # Estilos para Excel
+"""
+export_controller.py
+Controlador de exportación a Excel.
+
+Recibe por POST:
+  - columnas (list[str]): nombres de las columnas a incluir.
+  - filas    (list[int], opcional): índices (base-0) de las filas a exportar.
+                                    Si está vacío, exporta TODAS.
+
+Genera un .xlsx estilizado y devuelve la URL de descarga.
+"""
+from flask import (
+    Blueprint, request, jsonify, url_for,
+    send_from_directory, current_app
+)
+from openpyxl import Workbook
+from openpyxl.styles import PatternFill, Border, Side, Font, Alignment
 import os
 from models import db, Article, Collection
 from flask_login import login_required, current_user
 
-# Crear un blueprint específico para funcionalidades de exportación
 export_bp = Blueprint('export', __name__)
 
-# Ruta que genera un archivo Excel con los datos seleccionados por el usuario
+# Mapeo frontend-key → clave real en el dict de metadata
+COLUMNAS_VALIDAS = {
+    "titulo":           "titulo",
+    "autores":          "autores",
+    "anio":             "anio",
+    "tema":             "tema",
+    "pais":             "pais",
+    "palabras":         "palabras",
+    "resumen":          "resumen",
+    "paginas_imagenes": "paginas_imagenes",
+}
+
+# Etiquetas legibles para la cabecera del Excel
+ETIQUETAS = {
+    "titulo":           "Título",
+    "autores":          "Autores",
+    "anio":             "Año",
+    "tema":             "Tema",
+    "pais":             "País",
+    "palabras":         "Palabras Clave",
+    "resumen":          "Resumen",
+    "paginas_imagenes": "Págs / Imgs",
+}
+
+# Estilos Excel
+_FILL_HEADER = PatternFill(start_color="0D1421", end_color="0D1421", fill_type="solid")
+_FONT_HEADER = Font(color="3B7DE8", bold=True, name="Calibri", size=11)
+_FONT_BODY   = Font(color="E8EDF5", name="Calibri", size=10)
+_BORDER      = Border(
+    left=Side(style='thin', color="1E2D47"),
+    right=Side(style='thin', color="1E2D47"),
+    top=Side(style='thin', color="1E2D47"),
+    bottom=Side(style='thin', color="1E2D47"),
+)
+_ALIGN_CENTER = Alignment(horizontal="center", vertical="center", wrap_text=False)
+_ALIGN_TOP    = Alignment(horizontal="left", vertical="top", wrap_text=True)
+
+
 @export_bp.route("/exportar_excel", methods=["POST"])
 @login_required
 def exportar():
-    # Obtiene los datos extraídos desde la Base de Datos
+    # ── 1. Obtener datos de la BD ─────────────────────────────────
     col = Collection.query.filter_by(user_id=current_user.id, name="Default").first()
     if not col:
-        return jsonify(error="No hay datos para exportar.")
+        return jsonify(error="No hay datos para exportar."), 400
 
-    articles = Article.query.filter_by(collection_id=col.id, status='completed').all()
-    datos_extraidos = [a.get_metadata() for a in articles]
+    todos_los_articulos = Article.query.filter_by(
+        collection_id=col.id, status='completed'
+    ).all()
 
-    # Validar que haya datos disponibles para exportar
-    if not datos_extraidos:
-        return jsonify(error="No hay datos para exportar.")
+    if not todos_los_articulos:
+        return jsonify(error="No hay artículos procesados para exportar."), 400
 
-    # Obtener la lista de columnas seleccionadas por el usuario en el formulario
-    columnas_seleccionadas = request.form.getlist('columnas')
+    todos_los_datos = [a.get_metadata() for a in todos_los_articulos]
 
+    # ── 2. Validar columnas ───────────────────────────────────────
+    columnas_raw = request.form.getlist('columnas')
+    # Filtrar solo columnas conocidas y asegurar que 'titulo' siempre esté
+    columnas = [c for c in columnas_raw if c in COLUMNAS_VALIDAS]
+    if 'titulo' not in columnas:
+        columnas.insert(0, 'titulo')
 
-    # Crear un nuevo libro de trabajo de Excel
-    libro_trabajo = Workbook()
-    hoja_activa = libro_trabajo.active
-    hoja_activa.title = "Datos extraídos"
+    if len(columnas) == 0:
+        return jsonify(error="No se seleccionaron columnas válidas."), 400
 
-    # Mapeo de nombres de columnas del frontend a las claves del diccionario de datos
-    mapeo_columnas = {
-        "titulo": "titulo",
-        "autores": "autores",
-        "anio": "anio",
-        "tema": "tema",
-        "pais": "pais",
-        "palabras": "palabras",
-        "resumen": "resumen",
-        "paginas_imagenes":"paginas_imagenes",
-    }
+    # ── 3. Filtrar filas ──────────────────────────────────────────
+    filas_raw = request.form.getlist('filas')
+    if filas_raw:
+        try:
+            indices = [int(i) for i in filas_raw if i.strip().isdigit()]
+            # Filtrar índices fuera de rango
+            datos_exportar = [
+                todos_los_datos[i] for i in indices
+                if 0 <= i < len(todos_los_datos)
+            ]
+        except (ValueError, IndexError):
+            datos_exportar = todos_los_datos
+    else:
+        datos_exportar = todos_los_datos   # Exportar todo si no hay selección
 
-    # Construir el encabezado del Excel con las columnas que el usuario seleccionó
-    encabezado = [col.capitalize() for col in mapeo_columnas if col in columnas_seleccionadas]
-    hoja_activa.append(encabezado)
+    if not datos_exportar:
+        return jsonify(error="No hay filas válidas para exportar."), 400
 
-    # Definir estilos para el encabezado de la hoja de Excel
-    estilo_encabezado = {
-        "relleno": PatternFill(start_color="002147", end_color="002147", fill_type="solid"),
-        "fuente": Font(color="FFFFFF", bold=True),
-        "borde": Border(left=Side(style='thin'), right=Side(style='thin'),
-                        top=Side(style='thin'), bottom=Side(style='thin')),
-        "alineacion": Alignment(horizontal="center", vertical="center")
-    }
+    # ── 4. Crear Excel ────────────────────────────────────────────
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "RSL Datos"
 
-    # Aplicar los estilos definidos a cada celda del encabezado
-    for columna_num in range(1, len(encabezado) + 1):
-        celda = hoja_activa.cell(row=1, column=columna_num)
-        celda.fill = estilo_encabezado["relleno"]
-        celda.border = estilo_encabezado["borde"]
-        celda.font = estilo_encabezado["fuente"]
-        celda.alignment = estilo_encabezado["alineacion"]
+    # Cabecera
+    encabezado = [ETIQUETAS.get(col_key, col_key.capitalize()) for col_key in columnas]
+    ws.append(encabezado)
 
-    # Llenar las filas de la hoja con los datos extraídos
-    for dato in datos_extraidos:
-        # Crea una fila solo con los datos de las columnas seleccionadas
-        fila = [dato.get(mapeo_columnas[col.lower()], "") for col in encabezado]
-        hoja_activa.append(fila)
+    for col_num, _ in enumerate(encabezado, start=1):
+        celda = ws.cell(row=1, column=col_num)
+        celda.fill      = _FILL_HEADER
+        celda.font      = _FONT_HEADER
+        celda.border    = _BORDER
+        celda.alignment = _ALIGN_CENTER
 
-    # Aplicar estilos a las celdas que contienen los datos
-    for fila_celdas in hoja_activa.iter_rows(min_row=2):
-        for celda in fila_celdas:
-            celda.border = estilo_encabezado["borde"]
-            celda.alignment = Alignment(horizontal="left", vertical="top")
+    # Filas de datos
+    fill_par   = PatternFill(start_color="0D1421", end_color="0D1421", fill_type="solid")
+    fill_impar = PatternFill(start_color="131C2E", end_color="131C2E", fill_type="solid")
 
-    # Guardar el archivo Excel generado en la carpeta de subidas
-    nombre_archivo = "datos.xlsx"
-    ruta_archivo = os.path.join(current_app.config['UPLOAD_FOLDER'], nombre_archivo)
-    libro_trabajo.save(ruta_archivo)
+    for fila_num, dato in enumerate(datos_exportar, start=1):
+        fila = [dato.get(COLUMNAS_VALIDAS[col_key], "") for col_key in columnas]
+        ws.append(fila)
 
-    # Devolver la URL para que el frontend pueda iniciar la descarga del archivo
+        fill = fill_impar if fila_num % 2 == 0 else fill_par
+        for col_num in range(1, len(fila) + 1):
+            celda = ws.cell(row=fila_num + 1, column=col_num)
+            celda.fill      = fill
+            celda.font      = _FONT_BODY
+            celda.border    = _BORDER
+            celda.alignment = _ALIGN_TOP
+
+    # Ancho automático de columnas
+    for col_idx, col_key in enumerate(columnas, start=1):
+        max_len = max(
+            (len(str(dato.get(COLUMNAS_VALIDAS[col_key], "") or "")) for dato in datos_exportar),
+            default=10,
+        )
+        max_len = min(max(max_len, len(encabezado[col_idx - 1])) + 4, 60)
+        ws.column_dimensions[ws.cell(row=1, column=col_idx).column_letter].width = max_len
+
+    # Fijar fila de encabezado
+    ws.freeze_panes = "A2"
+
+    # ── 5. Guardar y devolver URL ─────────────────────────────────
+    nombre_archivo = "rsl_datos.xlsx"
+    ruta_archivo   = os.path.join(current_app.config['UPLOAD_FOLDER'], nombre_archivo)
+    wb.save(ruta_archivo)
+
     return jsonify(url=url_for("export.descargar_excel"))
 
-# Ruta que permite al usuario descargar el archivo Excel que se generó previamente
+
 @export_bp.route("/descargar_excel")
+@login_required
 def descargar_excel():
-    # Envía el archivo desde el directorio de subidas como un anexo para descargar
     return send_from_directory(
         current_app.config['UPLOAD_FOLDER'],
-        "datos.xlsx",
-        as_attachment=True  # Indica que el archivo debe descargarse en lugar de mostrarse en el navegador
+        "rsl_datos.xlsx",
+        as_attachment=True,
+        download_name="rsl_datos.xlsx",
     )
