@@ -1,6 +1,6 @@
 /* =============================================================
    AnalizadorPDFs – Design System & Global Styles
-   Dark theme | Professional | Scalable
+   Dark theme
    ============================================================= */
 
 @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
@@ -521,19 +521,6 @@ body {
     pointer-events: none;
 }
 
-/* Radial glow */
-.auth-page::after {
-    content: "";
-    position: absolute;
-    top: -20%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(circle, var(--color-accent-glow) 0%, transparent 70%);
-    pointer-events: none;
-}
-
 .auth-card {
     position: relative;
     z-index: 1;
@@ -1044,7 +1031,7 @@ body {
 
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+    grid-template-columns: 1fr;
     gap: var(--space-6);
     margin-top: var(--space-6);
 }
@@ -1124,6 +1111,20 @@ body {
     }
 }
 
+/* Tablet */
+@media (min-width: 768px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Desktop */
+@media (min-width: 1200px) {
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
 @media (max-width: 768px) {
     :root {
         --header-height: 60px;
@@ -1143,6 +1144,10 @@ body {
 
     .stats-grid {
         grid-template-columns: 1fr;
+    }
+
+    .chart-card--wide {
+        grid-column: 1;
     }
 
     .site-header__nav {
